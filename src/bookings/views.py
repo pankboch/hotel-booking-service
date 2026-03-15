@@ -8,7 +8,26 @@ from rest_framework.response import Response
 from rooms.models import Room
 
 from .models import Booking
-from .serializers import BookingsRoomSerializer
+from .serializers import BookingDeleteSerializer, BookingsRoomSerializer
+
+
+class BookingDeleteView(generics.DestroyAPIView):
+    """
+    Представление для обработки DELETE-запроса.
+    Из /bookings/delete/<int:booking_id>/ берет booking_id
+    и удаляет бронь
+    """
+
+    queryset = Booking.objects.all()
+    serializer_class = BookingDeleteSerializer
+    lookup_url_kwarg = "booking_id"
+
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        booking = self.get_object()
+        serializer = self.get_serializer(booking)
+        self.perform_destroy(instance=booking)
+
+        return Response(data={"deleted_booking": serializer.data}, status=status.HTTP_200_OK)
 
 
 class BookingsRoomGetView(generics.ListAPIView):
