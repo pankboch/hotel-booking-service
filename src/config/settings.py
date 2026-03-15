@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "rooms.apps.RoomsConfig",
     "bookings.apps.BookingsConfig",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -108,7 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "ru"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "europe/moscow"
 
 USE_I18N = True
 
@@ -120,3 +121,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 DEFAULT_CHARSET = "utf-8"
+
+REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ]
+}
