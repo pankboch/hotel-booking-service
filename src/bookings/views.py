@@ -2,13 +2,26 @@ from typing import Any
 
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from rooms.models import Room
 
 from .models import Booking
-from .serializers import BookingDeleteSerializer, BookingsRoomSerializer
+from .serializers import BookingAddSerializer, BookingDeleteSerializer, BookingsRoomSerializer
+
+
+class BookingAddView(generics.CreateAPIView):
+    queryset = Booking.objects.all()
+    serializer_class = BookingAddSerializer
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = serializer.save()
+
+        return Response(data={"booking_id": booking.id}, status=status.HTTP_201_CREATED)
 
 
 class BookingDeleteView(generics.DestroyAPIView):
@@ -40,7 +53,9 @@ class BookingsRoomGetView(generics.ListAPIView):
     serializer_class = BookingsRoomSerializer
 
     def get_room(self) -> Room:
-        room_id = self.kwargs.get("room_id")
+        room_id = self.request.query_params.get("room_id")
+        if room_id is None:
+            raise ValidationError({"room_id": "Параметр room_id обязателен."})
         return get_object_or_404(Room, id=room_id)
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
