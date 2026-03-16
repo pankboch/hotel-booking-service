@@ -30,7 +30,7 @@ class RoomCreateView(generics.CreateAPIView):
 class RoomDeleteView(generics.DestroyAPIView):
     """
     Представление для обработки DELETE-запроса.
-    Из url http://127.0.0.1:8000/rooms/delete/<int:room_id>/ берет room_id.
+    Из url /rooms/delete/<int:room_id>/ берет room_id.
     Удаляет соответствующую комнату и брони для этой комнаты.
     """
 
@@ -65,4 +65,4 @@ class RoomGetView(generics.ListAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomGetSerializer
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ["price", "description"]
+    ordering_fields = ["price", "created_at"]
