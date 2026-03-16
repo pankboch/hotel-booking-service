@@ -38,9 +38,10 @@ class BookingDeleteView(generics.DestroyAPIView):
     def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         booking = self.get_object()
         serializer = self.get_serializer(booking)
+        deleted_data = serializer.data
         self.perform_destroy(instance=booking)
 
-        return Response(data={"deleted_booking": serializer.data}, status=status.HTTP_200_OK)
+        return Response(data={"deleted_booking": deleted_data}, status=status.HTTP_200_OK)
 
 
 class BookingsRoomGetView(generics.ListAPIView):
