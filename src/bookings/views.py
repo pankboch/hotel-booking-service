@@ -61,7 +61,7 @@ class BookingsRoomGetView(generics.ListAPIView):
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         room = self.get_room()
-        bookings = Booking.objects.filter(room=room)
+        bookings = room.bookings.all()
         serializer = self.get_serializer(bookings, many=True)
 
         return Response(
