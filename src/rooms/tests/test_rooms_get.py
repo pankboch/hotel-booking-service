@@ -33,15 +33,7 @@ def test_get_rooms_returns_empty_list_when_no_rooms(api_client: APIClient) -> No
     assert actual == []
 
 
-@pytest.mark.parametrize(
-    "ordering",
-    [
-        "price",
-        "created_at",
-        "-price",
-        "-created_at",
-    ],
-)
+@pytest.mark.parametrize("ordering", ["price", "created_at", "-price", "-created_at"])
 @pytest.mark.django_db
 def test_get_rooms_sorting_dynamic(api_client: APIClient, rooms: list[Room], ordering: str) -> None:
     url = reverse("get_all_rooms") + f"?ordering={ordering}"
@@ -53,3 +45,19 @@ def test_get_rooms_sorting_dynamic(api_client: APIClient, rooms: list[Room], ord
     actual_ids = [room["id"] for room in response.json()]
 
     assert actual_ids == expected_ids
+
+
+@pytest.mark.parametrize("ordering", ["-id", "description"])
+@pytest.mark.django_db
+def test_get_rooms_invalid_ordering(
+    api_client: APIClient, rooms: list[Room], ordering: str
+) -> None:
+    url = reverse("get_all_rooms") + f"?ordering={ordering}"
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    expected = list(Room.objects.all().values_list("id", flat=True))
+    actual = [room["id"] for room in response.json()]
+
+    assert actual == expected
