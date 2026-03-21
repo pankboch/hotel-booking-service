@@ -31,3 +31,25 @@ def test_get_rooms_returns_empty_list_when_no_rooms(api_client: APIClient) -> No
 
     actual = response.json()
     assert actual == []
+
+
+@pytest.mark.parametrize(
+    "ordering",
+    [
+        "price",
+        "created_at",
+        "-price",
+        "-created_at",
+    ],
+)
+@pytest.mark.django_db
+def test_get_rooms_sorting_dynamic(api_client: APIClient, rooms: list[Room], ordering: str) -> None:
+    url = reverse("get_all_rooms") + f"?ordering={ordering}"
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    expected_ids = list(Room.objects.order_by(ordering).values_list("id", flat=True))
+    actual_ids = [room["id"] for room in response.json()]
+
+    assert actual_ids == expected_ids
