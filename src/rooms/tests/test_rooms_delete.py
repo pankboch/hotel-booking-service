@@ -38,3 +38,21 @@ def test_delete_room_with_bookings(api_client: APIClient, room_with_bookings: Ro
     assert not Room.objects.filter(id=room.id).exists()
 
     assert not Booking.objects.filter(room_id=room.id).exists()
+
+
+@pytest.mark.parametrize(
+    "room_id",
+    [
+        99999999,  # несуществующий id
+    ],
+)
+@pytest.mark.django_db
+def test_delete_room_invalid_id_format(
+    api_client: APIClient, room_id: int | str, rooms: list[Room]
+) -> None:
+    url = reverse("delete_room", kwargs={"room_id": room_id})
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    assert Room.objects.count() == len(rooms)
