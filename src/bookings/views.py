@@ -47,7 +47,7 @@ class BookingDeleteView(generics.DestroyAPIView):
 class BookingsRoomGetView(generics.ListAPIView):
     """
     Представление для обработки GET-запроса.
-    Из /bookings/room/<int:room_id>/ берет room_id
+    Из /bookings/room/?room_id=room_id берет room_id
     и возвращает все брони, привязанные к этому номеру
     """
 
