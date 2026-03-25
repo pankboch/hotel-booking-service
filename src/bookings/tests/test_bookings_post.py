@@ -180,3 +180,110 @@ def test_create_booking_with_invalid_date_format(
         assert field in actual_data
 
     assert Booking.objects.count() == bookings_count_before
+
+
+@pytest.mark.parametrize(
+    ("date_start", "date_end"),
+    [
+        (
+            (date.today() - timedelta(days=1)).isoformat(),
+            (date.today() + timedelta(days=5)).isoformat(),
+        ),
+        (
+            (date.today() - timedelta(days=30)).isoformat(),
+            (date.today() - timedelta(days=25)).isoformat(),
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_with_date_start_in_past(
+    api_client: APIClient, room: Room, date_start: str, date_end: str
+) -> None:
+    expected_error = "Нельзя создать бронирование на прошедшую дату."
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id, date_start=date_start, date_end=date_end)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert "non_field_errors" in actual_data
+    assert actual_data["non_field_errors"] == [expected_error]
+
+    assert Booking.objects.count() == bookings_count_before
+
+
+@pytest.mark.parametrize(
+    ("date_start", "date_end"),
+    [
+        (
+            (date.today() + timedelta(days=30)).isoformat(),
+            (date.today() + timedelta(days=25)).isoformat(),
+        ),
+        (
+            (date.today() + timedelta(days=30)).isoformat(),
+            (date.today() + timedelta(days=30)).isoformat(),
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_with_date_end_before_date_start(
+    api_client: APIClient, room: Room, date_start: str, date_end: str
+) -> None:
+    expected_error = "Дата начала бронирования должна быть раньше даты окончания."
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id, date_start=date_start, date_end=date_end)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert "non_field_errors" in actual_data
+    assert actual_data["non_field_errors"] == [expected_error]
+
+    assert Booking.objects.count() == bookings_count_before
+
+
+@pytest.mark.parametrize(
+    ("date_start", "date_end"),
+    [
+        (
+            (date.today() + timedelta(days=20)).isoformat(),
+            (date.today() + timedelta(days=35)).isoformat(),
+        ),
+        (
+            (date.today() + timedelta(days=35)).isoformat(),
+            (date.today() + timedelta(days=40)).isoformat(),
+        ),
+        (
+            (date.today() + timedelta(days=40)).isoformat(),
+            (date.today() + timedelta(days=50)).isoformat(),
+        ),
+        (
+            (date.today() + timedelta(days=25)).isoformat(),
+            (date.today() + timedelta(days=50)).isoformat(),
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_with_overlapping_dates(
+    api_client: APIClient, booking: Booking, date_start: str, date_end: str
+) -> None:
+    expected_error = "Выбранные даты пересекаются с уже существующим бронированием."
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(booking.room.id, date_start=date_start, date_end=date_end)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert "non_field_errors" in actual_data
+    assert actual_data["non_field_errors"] == [expected_error]
+
+    assert Booking.objects.count() == bookings_count_before
