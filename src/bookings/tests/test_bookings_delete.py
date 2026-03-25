@@ -21,3 +21,14 @@ def test_delete_booking_success(api_client: APIClient, booking: Booking) -> None
     assert actual["deleted_booking"] == expected_booking
 
     assert not Booking.objects.filter(id=booking.id).exists()
+
+
+@pytest.mark.django_db
+def test_delete_booking_not_found(api_client: APIClient) -> None:
+    url = reverse("delete_booking", kwargs={"booking_id": 99999999})
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    actual = response.json()
+    assert "detail" in actual
