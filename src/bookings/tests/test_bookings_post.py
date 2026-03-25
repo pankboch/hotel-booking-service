@@ -40,3 +40,48 @@ def test_create_booking_success(api_client: APIClient, room: Room) -> None:
     created_booking = Booking.objects.get(id=actual_data["booking_id"])
     actual_booking = BookingAddSerializer(created_booking).data
     assert actual_booking == payload
+
+
+@pytest.mark.django_db
+def test_create_booking_allows_same_dates_for_different_room(
+    api_client: APIClient,
+    booking: Booking,
+    another_room: Room,
+) -> None:
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(
+        another_room.id,
+        date_start=booking.date_start.isoformat(),
+        date_end=booking.date_end.isoformat(),
+    )
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    actual_data = response.json()
+    assert "booking_id" in actual_data
+    assert Booking.objects.count() == bookings_count_before + 1
+
+
+@pytest.mark.django_db
+def test_create_booking_allows_non_overlapping_dates(
+    api_client: APIClient,
+    booking: Booking,
+) -> None:
+    booking_count_before = Booking.objects.count()
+    payload = make_booking_payload(
+        booking.room.id,
+        date_start=(booking.date_end + timedelta(days=1)).isoformat(),
+        date_end=(booking.date_end + timedelta(days=5)).isoformat(),
+    )
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    actual_data = response.json()
+    assert "booking_id" in actual_data
+    assert Booking.objects.count() == booking_count_before + 1
