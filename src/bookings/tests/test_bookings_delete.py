@@ -32,3 +32,19 @@ def test_delete_booking_not_found(api_client: APIClient) -> None:
 
     actual = response.json()
     assert "detail" in actual
+
+
+@pytest.mark.django_db
+def test_delete_booking_does_not_delete_other_bookings(
+    api_client: APIClient, booking: Booking, another_booking: Booking
+) -> None:
+    bookings_count_before = Booking.objects.count()
+    url = reverse("delete_booking", kwargs={"booking_id": booking.id})
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    assert not Booking.objects.filter(id=booking.id).exists()
+    assert Booking.objects.filter(id=another_booking.id).exists()
+
+    assert Booking.objects.count() == bookings_count_before - 1
