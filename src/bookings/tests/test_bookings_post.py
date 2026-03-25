@@ -85,3 +85,98 @@ def test_create_booking_allows_non_overlapping_dates(
     actual_data = response.json()
     assert "booking_id" in actual_data
     assert Booking.objects.count() == booking_count_before + 1
+
+
+@pytest.mark.parametrize("missing_field", ["room", "date_start", "date_end"])
+@pytest.mark.django_db
+def test_create_booking_without_required_fields(
+    api_client: APIClient, room: Room, missing_field: str
+) -> None:
+    booking_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id)
+    payload.pop(missing_field)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert missing_field in actual_data
+
+    assert Booking.objects.count() == booking_count_before
+
+
+@pytest.mark.parametrize(
+    ("room_value", "expected_error"),
+    [
+        ("invalid_id", "Некорректный тип. Ожидалось значение первичного ключа, получен str."),
+        ("", "Это поле не может быть пустым."),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_with_invalid_room_id_type(
+    api_client: APIClient, room: Room, room_value: str, expected_error: str
+) -> None:
+    booking_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id, room=room_value)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert "room" in actual_data
+    assert actual_data["room"] == [expected_error]
+
+    assert Booking.objects.count() == booking_count_before
+
+
+@pytest.mark.django_db
+def test_create_booking_with_nonexistent_room(api_client: APIClient, room: Room) -> None:
+    booking_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id, room=99999999)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    assert "room" in actual_data
+
+    assert Booking.objects.count() == booking_count_before
+
+
+@pytest.mark.parametrize(
+    ("date_start", "date_end", "invalid_fields"),
+    [
+        ("10.04.2026", "15.04.2026", ("date_start", "date_end")),
+        ("2026/04/10", "2026/04/15", ("date_start", "date_end")),
+        ("invalid", "2026-04-15", ("date_start",)),
+        ("2026-04-10", "invalid", ("date_end",)),
+        ("invalid", "invalid", ("date_start", "date_end")),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_with_invalid_date_format(
+    api_client: APIClient,
+    room: Room,
+    date_start: str,
+    date_end: str,
+    invalid_fields: tuple[str, ...],
+) -> None:
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(room.id, date_start=date_start, date_end=date_end)
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    actual_data = response.json()
+    for field in invalid_fields:
+        assert field in actual_data
+
+    assert Booking.objects.count() == bookings_count_before
