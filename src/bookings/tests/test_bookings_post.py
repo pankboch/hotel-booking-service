@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
@@ -87,6 +88,45 @@ def test_create_booking_allows_non_overlapping_dates(
     assert Booking.objects.count() == booking_count_before + 1
 
 
+@pytest.mark.parametrize(
+    ("date_start", "date_end"),
+    [
+        pytest.param(
+            lambda booking: booking.date_end,
+            lambda booking: booking.date_end + timedelta(days=5),
+            id="starts-on-existing-end-date",
+        ),
+        pytest.param(
+            lambda booking: booking.date_start - timedelta(days=5),
+            lambda booking: booking.date_start,
+            id="ends-on-existing-start-date",
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_create_booking_adjacent_dates_success(
+    api_client: APIClient,
+    booking: Booking,
+    date_start: Callable[[Booking], date],
+    date_end: Callable[[Booking], date],
+) -> None:
+    bookings_count_before = Booking.objects.count()
+    payload = make_booking_payload(
+        booking.room.id,
+        date_start=date_start(booking).isoformat(),
+        date_end=date_end(booking).isoformat(),
+    )
+
+    url = reverse("add_booking")
+    response = api_client.post(url, payload, format="json")
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    actual_data = response.json()
+    assert "booking_id" in actual_data
+    assert Booking.objects.count() == bookings_count_before + 1
+
+
 @pytest.mark.parametrize("missing_field", ["room", "date_start", "date_end"])
 @pytest.mark.django_db
 def test_create_booking_without_required_fields(
@@ -115,7 +155,7 @@ def test_create_booking_without_required_fields(
     ],
 )
 @pytest.mark.django_db
-def test_create_booking_with_invalid_room_id_type(
+def test_create_booking_with_invalid_room_value(
     api_client: APIClient, room: Room, room_value: str, expected_error: str
 ) -> None:
     booking_count_before = Booking.objects.count()
@@ -251,31 +291,42 @@ def test_create_booking_with_date_end_before_date_start(
 @pytest.mark.parametrize(
     ("date_start", "date_end"),
     [
-        (
-            (date.today() + timedelta(days=20)).isoformat(),
-            (date.today() + timedelta(days=35)).isoformat(),
+        pytest.param(
+            lambda booking: booking.date_start - timedelta(days=10),
+            lambda booking: booking.date_start + timedelta(days=5),
+            id="starts-before-existing-and-ends-inside",
         ),
-        (
-            (date.today() + timedelta(days=35)).isoformat(),
-            (date.today() + timedelta(days=40)).isoformat(),
+        pytest.param(
+            lambda booking: booking.date_start + timedelta(days=2),
+            lambda booking: booking.date_end - timedelta(days=2),
+            id="fully-inside-existing",
         ),
-        (
-            (date.today() + timedelta(days=40)).isoformat(),
-            (date.today() + timedelta(days=50)).isoformat(),
+        pytest.param(
+            lambda booking: booking.date_start + timedelta(days=5),
+            lambda booking: booking.date_end + timedelta(days=10),
+            id="starts-inside-existing-and-ends-after",
         ),
-        (
-            (date.today() + timedelta(days=25)).isoformat(),
-            (date.today() + timedelta(days=50)).isoformat(),
+        pytest.param(
+            lambda booking: booking.date_start - timedelta(days=5),
+            lambda booking: booking.date_end + timedelta(days=5),
+            id="fully-overlaps-existing",
         ),
     ],
 )
 @pytest.mark.django_db
 def test_create_booking_with_overlapping_dates(
-    api_client: APIClient, booking: Booking, date_start: str, date_end: str
+    api_client: APIClient,
+    booking: Booking,
+    date_start: Callable[[Booking], date],
+    date_end: Callable[[Booking], date],
 ) -> None:
     expected_error = "Выбранные даты пересекаются с уже существующим бронированием."
     bookings_count_before = Booking.objects.count()
-    payload = make_booking_payload(booking.room.id, date_start=date_start, date_end=date_end)
+    payload = make_booking_payload(
+        booking.room.id,
+        date_start=date_start(booking).isoformat(),
+        date_end=date_end(booking).isoformat(),
+    )
 
     url = reverse("add_booking")
     response = api_client.post(url, payload, format="json")
