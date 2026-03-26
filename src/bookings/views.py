@@ -47,7 +47,7 @@ class BookingDeleteView(generics.DestroyAPIView):
 class BookingsRoomGetView(generics.ListAPIView):
     """
     Представление для обработки GET-запроса.
-    Из /bookings/room/<int:room_id>/ берет room_id
+    Из /bookings/room/?room_id=room_id берет room_id
     и возвращает все брони, привязанные к этому номеру
     """
 
@@ -57,11 +57,15 @@ class BookingsRoomGetView(generics.ListAPIView):
         room_id = self.request.query_params.get("room_id")
         if room_id is None:
             raise ValidationError({"room_id": "Параметр room_id обязателен."})
+
+        if not room_id or not room_id.isdigit():
+            raise ValidationError({"room_id": "Параметр room_id должен быть целым числом."})
+
         return get_object_or_404(Room, id=room_id)
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         room = self.get_room()
-        bookings = Booking.objects.filter(room=room)
+        bookings = room.bookings.all()
         serializer = self.get_serializer(bookings, many=True)
 
         return Response(

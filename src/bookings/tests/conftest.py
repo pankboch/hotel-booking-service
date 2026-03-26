@@ -1,0 +1,33 @@
+from datetime import date, timedelta
+from typing import Any
+
+import pytest
+
+from bookings.models import Booking
+from rooms.models import Room
+
+
+@pytest.fixture
+def booking(db: Any, room: Room) -> Booking:
+    return Booking.objects.create(
+        room=room,
+        date_start=date.today() + timedelta(days=30),
+        date_end=date.today() + timedelta(days=45),
+    )
+
+
+@pytest.fixture
+def another_booking(db: Any, another_room: Room) -> Booking:
+    return Booking.objects.create(
+        room=another_room,
+        date_start=date.today() + timedelta(days=30),
+        date_end=date.today() + timedelta(days=45),
+    )
+
+
+@pytest.fixture
+def another_room(db: Any) -> Room:
+    return Room.objects.create(
+        price=9000,
+        description="Другой номер",
+    )
