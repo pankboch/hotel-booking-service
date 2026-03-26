@@ -41,9 +41,7 @@ def test_delete_room_with_bookings(api_client: APIClient, room_with_bookings: Ro
 
 
 @pytest.mark.django_db
-def test_delete_room_not_found(
-    api_client: APIClient, room_id: int | str, rooms: list[Room]
-) -> None:
+def test_delete_room_not_found(api_client: APIClient, rooms: list[Room]) -> None:
     url = reverse("delete_room", kwargs={"room_id": 99999999})
     response = api_client.delete(url)
 
