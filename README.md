@@ -18,7 +18,8 @@ Simple REST API service for managing hotel rooms and bookings.
 - получать список бронирований конкретного номера;
 - проверять пересечение дат при создании бронирований.
 
-Проект также включает API-тесты для основных сценариев работы сервиса: 
+Проект также включает API-тесты для основных сценариев работы сервиса:
+
 - создание номеров и бронирований:
 - получение номеров и бронирований;
 - удаление номеров и бронирований;
@@ -109,6 +110,45 @@ poetry run python manage.py runserver
 
 ```text
 http://127.0.0.1:8000/
+```
+
+## Запуск через Docker
+
+Проект можно запустить через Docker Compose. Для этого нужно создать файл `.env.docker` на основе `.env.docker.example`
+и указать свои значения переменных.  
+`SECRET_KEY` нужно сгенерировать самостоятельно, например командой:
+
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Значения `DB_NAME`, `DB_USER`, `DB_PASSWORD` и `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` должны быть
+одинаковы между Django и PostgreSQL. После этого можно запустить контейнеры:
+
+```bash
+docker compose up --build
+```
+
+После первого запуска в отдельном терминале нужно применить миграции:
+
+```bash
+docker compose exec web python src/manage.py migrate
+```
+
+После этого сервис будет доступен по адресу:
+
+```text
+http://127.0.0.1:8000/
+```
+
+При желании можно загрузить подготовленную базу данных из файла `hotel_db_dump.sql`, но делать это нужно **до применения
+миграций**, иначе возникнет конфликт с уже созданными таблицами. Если миграции уже были применены, нужно пересоздать
+контейнерную базу и только потом импортировать дамп:
+
+```bash
+docker compose down -v
+docker compose up --build -d
+docker compose exec -T db psql -U postgres -d hotel_db < hotel_db_dump.sql
 ```
 
 ## API endpoints
