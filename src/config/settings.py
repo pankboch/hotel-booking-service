@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_extensions",
     "rooms.apps.RoomsConfig",
     "bookings.apps.BookingsConfig",
     "rest_framework",
@@ -111,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "ru"
 
-TIME_ZONE = "europe/moscow"
+TIME_ZONE = "Europe/Moscow"
 
 USE_I18N = True
 
